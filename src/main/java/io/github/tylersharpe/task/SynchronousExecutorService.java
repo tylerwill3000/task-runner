@@ -12,6 +12,8 @@ class SynchronousExecutorService implements ExecutorService {
 
     static final SynchronousExecutorService INSTANCE = new SynchronousExecutorService();
 
+    private SynchronousExecutorService() {}
+
     @Override
     public void shutdown() {
     }
@@ -69,7 +71,7 @@ class SynchronousExecutorService implements ExecutorService {
 
     @Override
     public <T> T invokeAny(Collection<? extends Callable<T>> tasks) throws ExecutionException {
-        return invokeAny(tasks, Long.MAX_VALUE, TimeUnit.DAYS);
+        return invokeAny(tasks, 0, null);
     }
 
     @Override

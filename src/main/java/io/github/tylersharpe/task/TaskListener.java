@@ -8,7 +8,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 /**
- * Listener which allows for notification of task lifecycle events.
+ * Listener which receives notifications of task lifecycle events.
  */
 public interface TaskListener {
 
@@ -35,7 +35,7 @@ public interface TaskListener {
      * @return A {@link TaskListener} which will forward each event to a list of other listeners.
      * Any exceptions thrown from the delegate listeners are caught and logged.
      */
-    static TaskListener ofDelegates(Collection<TaskListener> delegateListeners) {
+    static TaskListener aggregateOf(Collection<TaskListener> delegateListeners) {
         Logger log = LoggerFactory.getLogger(TaskListener.class);
 
         Collection<TaskListener> delegatesSnapshot = Set.copyOf(delegateListeners);
@@ -56,11 +56,11 @@ public interface TaskListener {
             }
 
             private void eachDelegate(Consumer<TaskListener> action) {
-                for (var listener : delegatesSnapshot) {
+                for (var delegate : delegatesSnapshot) {
                     try {
-                        action.accept(listener);
+                        action.accept(delegate);
                     } catch (Throwable e) {
-                        log.error("Could not invoke task listener " + listener, e);
+                        log.error("Could not invoke task listener " + delegate, e);
                     }
                 }
             }

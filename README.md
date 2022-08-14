@@ -1,6 +1,6 @@
 # Overview
 
-This is a toy project which implements a task runner. A task runner is a service capable of executing tasks in the proper order according to their dependencies on other tasks. The project is inspired by build systems like gradle and maven, which solve a similar problem.
+This is a toy project which implements a task runner. A task runner is a service capable of executing a list of tasks in the proper order according to their dependencies on other tasks. The project is inspired by build systems like gradle and maven, which solve a similar problem.
 
 # Features
 - Fails fast when a task cycle is detected

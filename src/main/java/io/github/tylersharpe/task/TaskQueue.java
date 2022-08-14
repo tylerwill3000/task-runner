@@ -32,9 +32,8 @@ class TaskQueue {
         return !remainingTasks.isEmpty();
     }
 
-    @SuppressWarnings("SameParameterValue")
-    Task pollNextTask(long timeoutAmount, TimeUnit timeoutUnit) throws InterruptedException {
-        return currentQueuedTasks.poll(timeoutAmount, timeoutUnit);
+    Task pollNextTask() throws InterruptedException {
+        return currentQueuedTasks.poll(30, TimeUnit.MINUTES);
     }
 
     synchronized void markFinished(Task finishedTask, Throwable taskError) {
@@ -53,7 +52,7 @@ class TaskQueue {
                     .toList();
 
             for (Task dependent : dependents) {
-                log.info("Discarding {} since {} failed", dependent, finishedTask);
+                log.debug("Discarding {} since {} failed", dependent, finishedTask);
                 remainingTasks.remove(dependent);
             }
         } else {
@@ -77,7 +76,7 @@ class TaskQueue {
         }
 
         for (Task taskToQueue : newTasksWithNoDependencies) {
-            log.info("Queuing task {}", taskToQueue);
+            log.debug("Queuing task {}", taskToQueue);
             remainingTasks.remove(taskToQueue);
             currentQueuedTasks.add(taskToQueue);
             taskListener.onTaskQueued(taskToQueue);

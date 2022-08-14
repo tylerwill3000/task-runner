@@ -4,7 +4,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -53,7 +56,8 @@ public class TaskRunner {
     }
 
     /**
-     * Executes a collection of tasks. When this method returns, all tasks will have completed (exceptionally or normally).
+     * Executes a collection of tasks.
+     * When this method returns, all tasks will either have completed (exceptionally or normally), or been discarded if a dependent task failed
      * @param tasks The tasks to execute.
      * @param continueOnFail Whether to continue execution if a task fails.
      *                       If <code>true</code>, any remaining tasks which don't depend on the failed task will be executed, and any remaining tasks which do depend on the failed task will be skipped.
@@ -66,12 +70,12 @@ public class TaskRunner {
             throw new IllegalArgumentException("Tasks may not be empty");
         }
         
-        TaskListener combinedListener = TaskListener.ofDelegates(taskListeners);
+        TaskListener combinedListener = TaskListener.aggregateOf(taskListeners);
         TaskQueue queue = new TaskQueue(tasks, combinedListener);
         ExecutorService taskEventsThreadPool = Executors.newCachedThreadPool();
         Thread pollThread = Thread.currentThread();
 
-        Set<Future<?>> taskFutures = new HashSet<>(tasks.size());
+        List<Future<?>> taskFutures = new ArrayList<>(tasks.size());
         while (queue.hasRemainingTasks()) {
             if (pollThread.isInterrupted()) {
                 log.warn("Prematurely ending task execution due to task failure");
@@ -80,7 +84,7 @@ public class TaskRunner {
 
             AtomicReference<Task> nextTaskRef = new AtomicReference<>();
             try {
-                nextTaskRef.set(queue.pollNextTask(Long.MAX_VALUE, TimeUnit.SECONDS));
+                nextTaskRef.set(queue.pollNextTask());
             } catch (InterruptedException e) {
                 log.warn("Prematurely ending task execution due to task failure");
                 break;
@@ -109,14 +113,17 @@ public class TaskRunner {
             taskFutures.add(taskFuture);
         }
 
-        // wait for outstanding tasks to complete
-        for (var taskFuture : taskFutures) {
-            if (taskFuture.isDone()) {
+        awaitAllFutures(taskFutures);
+    }
+
+    private void awaitAllFutures(Collection<Future<?>> futures) {
+        for (var future : futures) {
+            if (future.isDone()) {
                 continue;
             }
 
             try {
-                taskFuture.get();
+                future.get();
             } catch (ExecutionException | InterruptedException e) {
                 throw new RuntimeException(e);
             }
