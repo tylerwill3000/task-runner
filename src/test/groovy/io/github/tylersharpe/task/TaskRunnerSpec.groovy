@@ -18,17 +18,17 @@ class TaskRunnerSpec extends Specification {
             c.dependsOn(d, e)
             d.dependsOn(e)
 
-            ExecutionOrderListener listener = new ExecutionOrderListener()
+            QueueOrderListener listener = new QueueOrderListener()
             runner.addListener(listener)
 
         when:
             runner.execute([b, a, e, c, d])
 
         then:
-            listener.executionOrder[0] == e
-            listener.executionOrder[1] == d
-            listener.executionOrder[2..3] ==~ [b, c]
-            listener.executionOrder[4] == a
+            listener.queueOrder[0] == e
+            listener.queueOrder[1] == d
+            listener.queueOrder[2..3] ==~ [b, c]
+            listener.queueOrder[4] == a
 
         where:
             runner << [
@@ -44,14 +44,14 @@ class TaskRunnerSpec extends Specification {
             a.dependsOn(b)
 
             TaskRunner runner = TaskRunner.newSynchronousRunner()
-            ExecutionOrderListener listener = new ExecutionOrderListener()
+            QueueOrderListener listener = new QueueOrderListener()
             runner.addListener(listener)
 
         when:
             runner.execute([a, b])
 
         then:
-            listener.executionOrder == [b]
+            listener.queueOrder == [b]
     }
 
     def 'task execution continues if a task fails but the runner is configured to continue'() {
@@ -63,14 +63,14 @@ class TaskRunnerSpec extends Specification {
             a.dependsOn(b)
 
             TaskRunner runner = TaskRunner.newSynchronousRunner()
-            ExecutionOrderListener listener = new ExecutionOrderListener()
+            QueueOrderListener listener = new QueueOrderListener()
             runner.addListener(listener)
 
         when:
             runner.execute([a, b, c], true)
 
         then:
-            listener.executionOrder == [b, c]
+            listener.queueOrder == [b, c]
     }
 
     def 'an exception is thrown if any task cycles exist'() {
@@ -94,12 +94,12 @@ class TaskRunnerSpec extends Specification {
     }
 
     @CompileStatic
-    class ExecutionOrderListener implements TaskListener {
-        List<Task> executionOrder = []
+    class QueueOrderListener implements TaskListener {
+        List<Task> queueOrder = []
 
         @Override
         void onTaskQueued(Task task) {
-            executionOrder.add(task)
+            queueOrder.add(task)
         }
     }
 }

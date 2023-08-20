@@ -10,6 +10,6 @@ public interface Task extends Runnable {
     /**
      * @return The set of tasks which must be executed before this task may run.
      */
-    Set<Task> getDependencies();
+    Set<? extends Task> getDependencies();
 
 }

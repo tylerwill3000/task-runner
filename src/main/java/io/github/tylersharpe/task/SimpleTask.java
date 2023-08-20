@@ -1,9 +1,6 @@
 package io.github.tylersharpe.task;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Basic {@link Task} implementation suitable for use in small and simple applications, tests, etc.
@@ -23,7 +20,7 @@ public class SimpleTask implements Task {
     }
 
     @Override
-    public Set<Task> getDependencies() {
+    public Set<? extends Task> getDependencies() {
         return Set.copyOf(dependencies);
     }
 

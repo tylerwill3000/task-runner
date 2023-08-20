@@ -89,7 +89,8 @@ class TaskQueue {
             crawlTasks(task, allUniqueTasks, new LinkedList<>());
         }
 
-        return allUniqueTasks.stream().collect(toMap(identity(), task -> new HashSet<>(task.getDependencies())));
+        return allUniqueTasks.stream()
+            .collect(toMap(identity(), task -> new HashSet<>(task.getDependencies())));
     }
 
     private void crawlTasks(Task from, Set<Task> allUniqueTasks, Deque<Task> currentCrawlHistory) {

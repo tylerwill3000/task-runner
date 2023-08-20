@@ -8,12 +8,12 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.slf4j:slf4j-api:1.7.36'
+    implementation 'org.slf4j:slf4j-api:2.0.6'
 
-    testImplementation 'org.spockframework:spock-core:2.1-groovy-3.0'
-    testRuntimeOnly 'org.slf4j:slf4j-simple:1.7.22'
+    testImplementation 'org.spockframework:spock-core:2.3-groovy-4.0'
+    testRuntimeOnly 'org.slf4j:slf4j-simple:2.0.6'
 }
 
-tasks.named('test') {
+tasks.withType(Test) {
     useJUnitPlatform()
 }
