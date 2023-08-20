@@ -29,7 +29,7 @@ class TaskQueue {
     }
 
     boolean hasRemainingTasks() {
-        return !remainingTasks.isEmpty();
+        return !remainingTasks.isEmpty() || !currentQueuedTasks.isEmpty();
     }
 
     Task pollNextTask() throws InterruptedException {

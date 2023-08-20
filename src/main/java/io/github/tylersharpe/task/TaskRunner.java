@@ -4,11 +4,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 /**
  * <p>
@@ -21,7 +19,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class TaskRunner {
     private static final Logger log = LoggerFactory.getLogger(TaskRunner.class);
 
-    private final ExecutorService taskExecutor;
+    private final Supplier<ExecutorService> taskExecutorSupplier;
     private final Collection<TaskListener> taskListeners = new ArrayList<>();
 
     /**
@@ -33,18 +31,20 @@ public class TaskRunner {
             throw new IllegalArgumentException("Number of threads must be >= 1");
         }
 
-        return numThreads == 1 ? newSynchronousRunner() : new TaskRunner(Executors.newFixedThreadPool(numThreads));
+        return numThreads == 1
+            ? newSynchronousRunner()
+            : new TaskRunner(() -> Executors.newFixedThreadPool(numThreads));
     }
 
     /**
      * Creates a task runner which will execute tasks synchronously in the calling thread.
      */
     public static TaskRunner newSynchronousRunner() {
-        return new TaskRunner(SynchronousExecutorService.INSTANCE);
+        return new TaskRunner(() -> SynchronousExecutorService.INSTANCE);
     }
 
-    TaskRunner(ExecutorService taskExecutor) {
-        this.taskExecutor = taskExecutor;
+    private TaskRunner(Supplier<ExecutorService> taskExecutorSupplier) {
+        this.taskExecutorSupplier = taskExecutorSupplier;
     }
 
     public void addListener(TaskListener listener) {
@@ -72,10 +72,10 @@ public class TaskRunner {
         
         TaskListener combinedListener = TaskListener.aggregateOf(taskListeners);
         TaskQueue queue = new TaskQueue(tasks, combinedListener);
-        ExecutorService taskEventsThreadPool = Executors.newCachedThreadPool();
+        ExecutorService taskEventsExecutor = Executors.newCachedThreadPool();
+        ExecutorService taskExecutor = taskExecutorSupplier.get();
         Thread pollThread = Thread.currentThread();
 
-        List<Future<?>> taskFutures = new ArrayList<>(tasks.size());
         while (queue.hasRemainingTasks()) {
             if (pollThread.isInterrupted()) {
                 log.warn("Prematurely ending task execution due to task failure");
@@ -90,9 +90,9 @@ public class TaskRunner {
                 break;
             }
 
-            Future<?> taskFuture = taskExecutor.submit(() -> {
+            taskExecutor.submit(() -> {
                 Task nextTask = nextTaskRef.get();
-                taskEventsThreadPool.submit(() -> combinedListener.onTaskStarted(nextTask));
+                taskEventsExecutor.submit(() -> combinedListener.onTaskStarted(nextTask));
 
                 AtomicReference<Throwable> taskError = new AtomicReference<>();
                 try {
@@ -104,29 +104,22 @@ public class TaskRunner {
                     taskError.set(e);
                 }
 
-                taskEventsThreadPool.submit(() -> queue.markFinished(nextTask, taskError.get()));
+                taskEventsExecutor.submit(() -> queue.markFinished(nextTask, taskError.get()));
 
                 if (taskError.get() != null && !continueOnFail && !pollThread.isInterrupted()) {
                     pollThread.interrupt();
                 }
             });
-            taskFutures.add(taskFuture);
         }
 
-        awaitAllFutures(taskFutures);
-    }
-
-    private void awaitAllFutures(Collection<Future<?>> futures) {
-        for (var future : futures) {
-            if (future.isDone()) {
-                continue;
+        taskExecutor.shutdown();
+        try {
+            if (!taskExecutor.awaitTermination(1, TimeUnit.HOURS)) {
+                throw new RuntimeException("Could not await termination of all tasks");
             }
-
-            try {
-                future.get();
-            } catch (ExecutionException | InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
+
 }

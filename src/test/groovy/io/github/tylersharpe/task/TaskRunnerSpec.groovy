@@ -3,6 +3,8 @@ package io.github.tylersharpe.task
 import groovy.transform.CompileStatic
 import spock.lang.Specification
 
+import java.util.concurrent.atomic.AtomicBoolean
+
 class TaskRunnerSpec extends Specification {
 
     def 'execute() will run all tasks in the proper order'() {
@@ -35,6 +37,33 @@ class TaskRunnerSpec extends Specification {
                 TaskRunner.newSynchronousRunner(),
                 TaskRunner.newParallelRunner(2)
             ]
+    }
+
+    def 'execute() does not return until all tasks have finished executing'() {
+        given:
+            AtomicBoolean taskACompleted = new AtomicBoolean(false)
+            AtomicBoolean taskBCompleted = new AtomicBoolean(false)
+
+            SimpleTask a = new SimpleTask('A', () -> {
+                println('Running task A')
+                Thread.sleep(1000)
+                taskACompleted.set(true)
+            })
+
+            SimpleTask b = new SimpleTask('B', () -> {
+                println('Running task B')
+                Thread.sleep(1000)
+                taskBCompleted.set(true)
+            })
+
+            TaskRunner runner = TaskRunner.newParallelRunner(2)
+
+        when:
+            runner.execute([a, b])
+
+        then:
+            taskACompleted.get()
+            taskBCompleted.get()
     }
 
     def 'task execution ends immediately when a task fails and the runner is not configured to continue on failure'() {
