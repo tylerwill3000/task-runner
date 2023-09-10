@@ -9,4 +9,4 @@ This is a toy project which implements a task runner. A task runner is a service
 
 # Usage
 
-See [TaskRunnerSpec](src/test/groovy/io/github/tylersharpe/task/TaskRunnerSpec.groovy) for usage examples.
+See [TaskRunnerSpec](src/test/groovy/io/github/tylerwilliams/task/TaskRunnerSpec.groovy) for usage examples.

@@ -1,4 +1,4 @@
-package io.github.tylersharpe.task;
+package io.github.tylerwilliams.task;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,7 +71,7 @@ public class TaskRunner {
         }
         
         TaskListener combinedListener = TaskListener.aggregateOf(taskListeners);
-        TaskQueue queue = new TaskQueue(tasks, combinedListener);
+        io.github.tylerwilliams.task.TaskQueue queue = new io.github.tylerwilliams.task.TaskQueue(tasks, combinedListener);
         ExecutorService taskEventsExecutor = Executors.newCachedThreadPool();
         ExecutorService taskExecutor = taskExecutorSupplier.get();
         Thread pollThread = Thread.currentThread();
